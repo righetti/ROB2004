@@ -27,4 +27,4 @@ Complete the [introduction_to_pybullet Jupyter Notebook](introduction_to_pybulle
 Complete the [sensors_and_actuators Jupyter Notebook](sensors_and_actuators.ipynb)
 
 ## Step 3: Closing the loop with a PD controller
-Complete the [pd_controller Jupyter Notebook](pid_controller.ipynb)
+Complete the [pd_controller Jupyter Notebook](pd_controller.ipynb)
