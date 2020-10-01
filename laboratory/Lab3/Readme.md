@@ -1,6 +1,6 @@
-# Laboratory 2: Forward Kinematics
+# Laboratory 3: Inverse Kinematics and Trajectory Generation
 
-Welcome to the second laboratory of the semester. 
+Welcome to the third laboratory of the semester. 
 
 ## Goals
 The goals of the laboratory are
