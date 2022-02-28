@@ -1,22 +1,19 @@
-# Laboratory 3: Inverse Kinematics and Trajectory Generation
+# Laboratory 3: Analytic Inverse Kinematics
 
 Welcome to the third laboratory of the semester. 
 
 ## Goals
 The goals of the laboratory are
 1. learn how to compute analytic inverse kinematic solutions for simple kinematic chains
-2. learn how to generate smooth trajectories to go from an initial position to a goal position
-3. implement your first inverse kinematics algorithm
-4. implement your first trajectory generation algorithm
-4. use both algorithms to implement a reaching controller
+2. implement your first inverse kinematics algorithm
+3. implement a simple reaching controller
 
 
 ## Pre-requisites
-In order to do the laboratory you will need to have installed on your machine:
-* Python 3
-* numpy, matplotlib 
-* pybullet
+Most of the lab can be done on your personal computer (except the real-robot part). All the required software is installed on the lab computers but to do the lab on your machine, you will need to have installed on your machine:
+* Python 3 (e.g. using Anaconda)
+* numpy, matplotlib (comes by default with Anaconda)
+* pybullet (using pip to install)
 
-
-## TODO
+## Instructions
 Complete the [Inverse Kinematics notebook](Inverse_Kinematics.ipynb)
