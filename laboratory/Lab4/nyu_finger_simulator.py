@@ -96,8 +96,9 @@ class NYUFingerSimulator:
         """
         time.sleep(self.dt)
         p.stepSimulation()
-
+        
     def add_ball(self, x_des, y_des):
         self.ball1 = p.loadURDF("urdf/ball1.urdf")
         p.resetBasePositionAndOrientation(self.ball1, [x_des-0.3, -0.05, 0.285+y_des], (0., 0., 0.5, 0.5))
+
 
