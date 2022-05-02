@@ -14,7 +14,7 @@ import time
 import os.path
 
 class NYUFingerSimulator:
-    def __init__(self, fixedBase=True):
+    def __init__(self):
         # the step time
         self.dt = 0.001
         
@@ -38,11 +38,7 @@ class NYUFingerSimulator:
 
         self.robotId = p.loadURDF(urdf_path, robotStartPos,
                 robotStartOrientation, flags=p.URDF_USE_INERTIA_FROM_FILE,
-                useFixedBase=fixedBase)
-        
-        self.fixedBase = fixedBase
-        if not self.fixedBase:
-            self.add_plane()
+                useFixedBase=True)
         
         # names of the joints of interest
         self.joint_names = [
@@ -100,19 +96,9 @@ class NYUFingerSimulator:
         """
         time.sleep(self.dt)
         p.stepSimulation()
-        if not self.fixedBase:
-            linvel, angvel = p.getBaseVelocity(self.robotId)
-            pos, orien = p.getBasePositionAndOrientation(self.robotId)
-            p.resetBasePositionAndOrientation(self.robotId, [0.,0.,pos[2]], [0.,0.,0.,1.])
-            p.resetBaseVelocity(self.robotId, [0.,0.,linvel[2]], [0.,0.,0.])
-
+        
     def add_ball(self, x_des, y_des):
         self.ball1 = p.loadURDF("urdf/ball1.urdf")
         p.resetBasePositionAndOrientation(self.ball1, [x_des-0.3, -0.05, 0.285+y_des], (0., 0., 0.5, 0.5))
-        
-    def add_plane(self):
-        self.plane = p.loadURDF("urdf/plane.urdf")
-        p.resetBasePositionAndOrientation(self.plane, [0,0,-0.1], (0., 0., 0., 1.))
-        p.changeDynamics(self.plane, -1, lateralFriction=5., rollingFriction=0)
-        
+
 
