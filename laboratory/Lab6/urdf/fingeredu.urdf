@@ -25,7 +25,7 @@
   <link name="base_link">
     <inertial>
       <origin rpy="0 0 0" xyz="0 0 0"/>
-      <mass value="0.2"/>
+      <mass value="1"/>
       <inertia ixx="4.16666666667e-06" ixy="0" ixz="0" iyy="4.16666666667e-06" iyz="0" izz="4.16666666667e-06"/>
     </inertial>
   </link>
@@ -95,7 +95,7 @@
     </collision>
     <inertial>
       <origin rpy="0 0 0" xyz="-0.1 0 0.4"/>
-      <mass value="0.2"/>
+      <mass value="1"/>
       <inertia ixx="0.0608333333333" ixy="0" ixz="0" iyy="0.0566666666667" iyz="0" izz="0.0108333333333"/>
     </inertial>
   </link>
@@ -191,7 +191,7 @@
   <joint name="finger_upper_to_middle_joint" type="revolute">
     <parent link="finger_upper_link"/>
     <child link="finger_middle_link"/>
-    <limit effort="1000" lower="-3.14" upper="3.14" velocity="1000"/>
+    <limit effort="1000" lower="-3.14159265359" upper="3.14159265359" velocity="1000"/>
     <axis xyz="0 -1 0"/>
     <origin rpy="0 0 0" xyz="0 -0.014 0"/>
   </joint>
