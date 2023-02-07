@@ -110,6 +110,55 @@ def display_rotated_body_widget(body):
     
     
     
+def transform_vertices_3D(vertices, T):
+    v_new = vertices.copy()
+
+    for i in range(len(vertices)):
+        v_aug = np.ones([4,1])
+        v_aug[0:3,0] = vertices[i,:].transpose()
+        v_aug_new = T.dot(v_aug)
+        v_new[i,:] = v_aug_new[0:3,0]
+    return v_new
+
+def update_plot_cube3D(ax, original_vert, vertices, T, axis=None):
+    # generate list of sides' polygons of our pyramid
+    sides = [ [vertices[0],vertices[1],vertices[2],vertices[3]],
+              [vertices[0],vertices[1],vertices[5],vertices[4]],
+              [vertices[2],vertices[3],vertices[7],vertices[6]],
+              [vertices[7],vertices[6],vertices[5],vertices[4]],
+           [vertices[0],vertices[3],vertices[7],vertices[4]],
+           [vertices[1],vertices[2],vertices[6],vertices[5]]]
+    orig_sides = [ [original_vert[0],original_vert[1],original_vert[2],original_vert[3]],
+              [original_vert[0],original_vert[1],original_vert[5],original_vert[4]],
+              [original_vert[2],original_vert[3],original_vert[7],original_vert[6]],
+              [original_vert[7],original_vert[6],original_vert[5],original_vert[4]],
+           [original_vert[0],original_vert[3],original_vert[7],original_vert[4]],
+           [original_vert[1],original_vert[2],original_vert[6],original_vert[5]]]
+    ax.clear()
+    ax.scatter3D(vertices[:, 0], vertices[:, 1], vertices[:, 2], lw=2)
+    # plot sides
+    ax.add_collection3d(Poly3DCollection(sides, facecolors='red', linewidths=2, edgecolors='blue', alpha=.25))
+
+#     ax.scatter3D(original_vert[:, 0], original_vert[:, 1], original_vert[:, 2], c='r', linestyle='--')
+#     ax.add_collection3d(Poly3DCollection(orig_sides, facecolors='red', linewidths=2, edgecolors='blue', alpha=.25, linestyle='--'))
+
+    vector_length = 2.5
     
-def display_cube_3D_widget():
+    if axis is not None:
+        print(axis)
+        ax.plot3D([0,axis[0]*vector_length],[0,axis[1]*vector_length],[0,axis[2]*vector_length],'k',lw=6)
     
+    ax.set_xlim3d([-vector_length,vector_length])
+    ax.set_ylim3d([-vector_length,vector_length])
+    ax.set_zlim3d([-vector_length,vector_length])
+    ax.quiver3D(0,0,0,1,0,0,ls='--',color='red',lw=2)
+    ax.quiver3D(0,0,0,0,1,0,ls='--',color='green',lw=2)
+    ax.quiver3D(0,0,0,0,0,1,ls='--',color='blue',lw=2)
+    
+    x1 = T.dot(np.array([1,0,0,0]))
+    y1 = T.dot(np.array([0,1,0,0]))
+    z1 = T.dot(np.array([0,0,1,0]))
+    
+    ax.quiver3D(T[0,3],T[1,3],T[2,3],x1[0],x1[1],x1[2],ls='-',color='red',lw=2)
+    ax.quiver3D(T[0,3],T[1,3],T[2,3],y1[0],y1[1],y1[2],ls='-',color='green',lw=2)
+    ax.quiver3D(T[0,3],T[1,3],T[2,3],z1[0],z1[1],z1[2],ls='-',color='blue',lw=2)
