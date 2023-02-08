@@ -111,6 +111,10 @@ def display_rotated_body_widget(body):
     
     
 def transform_vertices_3D(vertices, T):
+    """
+        takes an array of vertices (nx3) and homogeneous transform T
+        returns each row (treated as a column vector) transformed by T
+    """
     v_new = vertices.copy()
 
     for i in range(len(vertices)):
@@ -120,37 +124,33 @@ def transform_vertices_3D(vertices, T):
         v_new[i,:] = v_aug_new[0:3,0]
     return v_new
 
-def update_plot_cube3D(ax, original_vert, vertices, T, axis=None):
-    # generate list of sides' polygons of our pyramid
-    sides = [ [vertices[0],vertices[1],vertices[2],vertices[3]],
-              [vertices[0],vertices[1],vertices[5],vertices[4]],
-              [vertices[2],vertices[3],vertices[7],vertices[6]],
-              [vertices[7],vertices[6],vertices[5],vertices[4]],
-           [vertices[0],vertices[3],vertices[7],vertices[4]],
-           [vertices[1],vertices[2],vertices[6],vertices[5]]]
-    orig_sides = [ [original_vert[0],original_vert[1],original_vert[2],original_vert[3]],
-              [original_vert[0],original_vert[1],original_vert[5],original_vert[4]],
-              [original_vert[2],original_vert[3],original_vert[7],original_vert[6]],
-              [original_vert[7],original_vert[6],original_vert[5],original_vert[4]],
-           [original_vert[0],original_vert[3],original_vert[7],original_vert[4]],
-           [original_vert[1],original_vert[2],original_vert[6],original_vert[5]]]
+def update_plot_cube3D(ax, vertices, T, plot_scale=1.):
+    """
+        this function plots a 3D cube described by vertices (in spatial frame) and transformed by T
+        it also shows the spatial frame (origin) and the frame attached to the cube
+        ax: matplotlib axes handle
+        plot_scale: defines the x,y,z-lim of the plot
+    """
+    # move the cube
+    moved_vertices = transform_vertices_3D(vertices,T)
+    
+    # generate list of sides' polygons of our cube
+    sides = [ [moved_vertices[0],moved_vertices[1],moved_vertices[2],moved_vertices[3]],
+              [moved_vertices[0],moved_vertices[1],moved_vertices[5],moved_vertices[4]],
+              [moved_vertices[2],moved_vertices[3],moved_vertices[7],moved_vertices[6]],
+              [moved_vertices[7],moved_vertices[6],moved_vertices[5],moved_vertices[4]],
+           [moved_vertices[0],moved_vertices[3],moved_vertices[7],moved_vertices[4]],
+           [moved_vertices[1],moved_vertices[2],moved_vertices[6],moved_vertices[5]]]
+
     ax.clear()
-    ax.scatter3D(vertices[:, 0], vertices[:, 1], vertices[:, 2], lw=2)
+    ax.scatter3D(moved_vertices[:, 0], moved_vertices[:, 1], moved_vertices[:, 2], lw=2)
     # plot sides
     ax.add_collection3d(Poly3DCollection(sides, facecolors='red', linewidths=2, edgecolors='blue', alpha=.25))
 
-#     ax.scatter3D(original_vert[:, 0], original_vert[:, 1], original_vert[:, 2], c='r', linestyle='--')
-#     ax.add_collection3d(Poly3DCollection(orig_sides, facecolors='red', linewidths=2, edgecolors='blue', alpha=.25, linestyle='--'))
-
-    vector_length = 2.5
-    
-    if axis is not None:
-        print(axis)
-        ax.plot3D([0,axis[0]*vector_length],[0,axis[1]*vector_length],[0,axis[2]*vector_length],'k',lw=6)
-    
-    ax.set_xlim3d([-vector_length,vector_length])
-    ax.set_ylim3d([-vector_length,vector_length])
-    ax.set_zlim3d([-vector_length,vector_length])
+    # we use plot_scale to define the display limits
+    ax.set_xlim3d([-plot_scale,plot_scale])
+    ax.set_ylim3d([-plot_scale,plot_scale])
+    ax.set_zlim3d([-plot_scale,plot_scale])
     ax.quiver3D(0,0,0,1,0,0,ls='--',color='red',lw=2)
     ax.quiver3D(0,0,0,0,1,0,ls='--',color='green',lw=2)
     ax.quiver3D(0,0,0,0,0,1,ls='--',color='blue',lw=2)
