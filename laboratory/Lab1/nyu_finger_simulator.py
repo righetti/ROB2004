@@ -85,9 +85,16 @@ class NYUFingerSimulator:
         """
         assert(tau.shape[0] == self.nj)
         zeroGains = tau.shape[0] * (0.,)
+        
+        joint_states = p.getJointStates(self.robotId, self.bullet_joint_ids)
+        dq = np.zeros([self.nj])
+        for i in range(self.nj):  
+            dq[i] = joint_states[i][1]
+
+        tau_sent = tau - dq * 0.1
 
         p.setJointMotorControlArray(self.robotId, self.bullet_joint_ids, 
-                                    p.TORQUE_CONTROL, forces=tau, 
+                                    p.TORQUE_CONTROL, forces=tau_sent, 
                                     positionGains=zeroGains, velocityGains=zeroGains)
         
     def step(self):

@@ -16,9 +16,9 @@ The goal of the laboratory are
 
 ## Pre-requisites
 Most of the lab can be done on your personal computer (except the real-robot part). All the required software is installed on the lab computers but to do the lab on your machine, you will need to have installed on your machine:
-* Python 3 (e.g. using Anaconda)
-* numpy, matplotlib (comes by default with Anaconda)
-* pybullet (using pip to install it - e.g. in a terminal type `pip install pybullet`)
+* Python 3 (e.g. using Conda)
+* numpy, matplotlib (`conda install numpy matplotlib`)
+* pybullet (using pip to install it - e.g. in a terminal type `conda install pybullet`)
 
 
 ## Step 1: Typical control loops with sensors and actuators
