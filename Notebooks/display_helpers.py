@@ -30,7 +30,7 @@ def bmatrix(a):
     rv = [r'\begin{bmatrix}']
     rv += ['  ' + ' & '.join(l.split()) + r'\\' for l in lines]
     rv +=  [r'\end{bmatrix}']
-    return str(''.join(rv))
+    return str(r''.join(rv))
 
 def pmatrix(a):
     """Returns a LaTeX bmatrix
@@ -44,7 +44,7 @@ def pmatrix(a):
     rv = [r'\begin{pmatrix}']
     rv += ['  ' + ' & '.join(l.split()) + r'\\' for l in lines]
     rv +=  [r'\end{pmatrix}']
-    return str(''.join(rv))
+    return str(r''.join(rv))
 
 
 
