@@ -14,31 +14,38 @@ import time
 import os.path
 
 class NYUFingerSimulator:
-    def __init__(self):
+    __pybullet_initialized = False
+
+    def __init__(self, robotStartPos = [0.,0.,0.], fixedBase=True):
         # the step time
         self.dt = 0.001
-        
-        # Connet to pybullet and setup simulation parameters.
-        p.connect(p.GUI)
-        p.setGravity(0, 0, -9.81)
-        p.setPhysicsEngineParameter(fixedTimeStep=self.dt, numSubSteps=1)
 
-        # Zoom onto the robot.
-        p.resetDebugVisualizerCamera(1.0, 50, -35, (0., 0., 0.))
+        if not NYUFingerSimulator.__pybullet_initialized:
+            # Connet to pybullet and setup simulation parameters.
+            p.connect(p.GUI)
+            p.setGravity(0, 0, -9.81)
+            p.setPhysicsEngineParameter(fixedTimeStep=self.dt, numSubSteps=1)
 
-        # Disable the gui controller as we don't use them.
-        p.configureDebugVisualizer(p.COV_ENABLE_GUI,0)
+            # Zoom onto the robot.
+            p.resetDebugVisualizerCamera(.7, 0, 0, (0., 0., 0.))
+
+            # Disable the gui controller as we don't use them.
+            p.configureDebugVisualizer(p.COV_ENABLE_GUI,0)
+
+            self.add_plane()
+            NYUFingerSimulator.__pybullet_initialized = True
         
         ###
         # Load the finger robot
-        robotStartPos = [0.,0,.0]
         robotStartOrientation = p.getQuaternionFromEuler([0,0,0])
 
         urdf_path = './urdf/fingeredu.urdf'
 
         self.robotId = p.loadURDF(urdf_path, robotStartPos,
                 robotStartOrientation, flags=p.URDF_USE_INERTIA_FROM_FILE,
-                useFixedBase=True)
+                useFixedBase=fixedBase)
+        
+        self.fixedBase = fixedBase
         
         # names of the joints of interest
         self.joint_names = [
@@ -58,6 +65,8 @@ class NYUFingerSimulator:
         # Disable the velocity control on the joints as we use torque control.
         p.setJointMotorControlArray(self.robotId, self.bullet_joint_ids,
                                     p.VELOCITY_CONTROL, forces=np.zeros(self.nj))
+        p.changeDynamics(self.robotId, 4, lateralFriction=1.)
+        p.changeDynamics(self.robotId, 3, lateralFriction=1.)
         
     def get_state(self):
         """ 
@@ -96,9 +105,18 @@ class NYUFingerSimulator:
         """
         time.sleep(self.dt)
         p.stepSimulation()
-        
-    def add_ball(self, x_des, y_des):
-        self.ball1 = p.loadURDF("urdf/ball1.urdf")
-        p.resetBasePositionAndOrientation(self.ball1, [x_des-0.3, -0.05, 0.285+y_des], (0., 0., 0.5, 0.5))
 
+    def add_ball(self, x_des, y_des):
+        ball = p.loadURDF("urdf/ball1.urdf")
+        p.resetBasePositionAndOrientation(ball, [x_des-0.3, -0.05, 0.285+y_des], (0., 0., 0.5, 0.5))
+        
+    def add_plane(self):
+        plane = p.loadURDF("urdf/plane.urdf")
+        p.resetBasePositionAndOrientation(plane, [0,0,-0.05], (0., 0., 0., 1.))
+        p.changeDynamics(plane, -1, lateralFriction=5., rollingFriction=0)
+        
+    def add_box(self, position, friction=0.8):
+        box = p.loadURDF("urdf/box.urdf")
+        p.resetBasePositionAndOrientation(box, position, (0., 0., 0., 1.))
+        p.changeDynamics(box, -1, lateralFriction=friction, spinningFriction=0.5)
 
