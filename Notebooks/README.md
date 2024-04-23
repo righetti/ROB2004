@@ -8,5 +8,6 @@ This folder contains Notebooks illustrating some of the concepts discussed in th
 * [Inverse geometry of the Kuka Robot](Inverse%20Geometry%20for%20the%20Kuka%20robot.ipynb) provides examples of inverse geometry using our custom written forward kinematics and SciPy minimize function.
 * [Inverse geometry of the Talos Humanoid Robot](Inverse%20Geometry%20for%20the%20Talos%20Humanoids%20robot.ipynb) provides examples of inverse geometry using Pinocchio's forward kinematics and SciPy minimize function.
 * [Forward_Kinematics_exponential_formula.ipynb](Forward_Kinematics_exponential_formula.ipynb) provides code for the forward kinematics examples seen in class (ABB and Kuka robots) using the product of exponential formula
-* [Inverse kinematics example - Kuka iiwa robot.ipynb](Inverse%20kinematics%20example%20-%20Kuka%20iiwa%20robot.ipynb) provides several examples of inverse kinematics for the Kuka iiwa robot
+* [Inverse kinematics example - Kuka iiwa robot.ipynb](Inverse%20kinematics%20example%20-%20Kuka%20iiwa%20robot.ipynb) provides several examples of inverse kinematics for the Kuka iiwa robot using the pseudo-inverse
+* [Inverse kinematics with QP example - Kuka iiwa robot.ipynb](Inverse%20kinematics%20with%20QP%20example%20-%20Kuka%20iiwa%20robot.ipynb) provides examples of inverse kinematics for the Kuka iiwas robot using a QP solver
 * [Inverse kinematics example - Talos humanoid robot.ipynb](Inverse%20kinematics%20example%20-%20Talos%20humanoid%20robot.ipynb) is an example of inverse kinematics with several tasks for a humanoid robot
