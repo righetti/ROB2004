@@ -1,5 +1,17 @@
 # ROB2004 Robotics manipulation and locomotion
 
+**Note:** For Spring 2025, use the `spring25` branch in this repository. You can directly downloading it by selecting this branch as:
+
+<img src="download-info.jpeg" width="800"> 
+
+and downloading it directly or switching to it after the cloning as:
+
+```bash
+cd ~
+git clone git@github.com:righetti/ROB2004.git
+git checkout spring25
+```
+
 This repository provides material used for the class **ROB2004 Robotic manipulation and locomotion** taught at New York University by [Ludovic Righetti](https://engineering.nyu.edu/faculty/ludovic-righetti).
 You are free to use and copy this material (at your own risk), please reference the material if you use it.
 
