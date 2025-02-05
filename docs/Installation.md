@@ -28,9 +28,11 @@ Note if you are unfamiliar with git, you can download the repository as a zip fi
 
 3. Create the virtual environment using conda:
 
-```conda env create -f environment.yml```
+```bash 
+conda create --name rob2004 python==3.8
+```
 
-This should create a virtual environment that has all the required packages we need for the laboratory.
+This should create a virtual environment for the class.
 
 4. Activate the virtual environment:
 
@@ -38,11 +40,14 @@ This should create a virtual environment that has all the required packages we n
 
 ensure you have the environment activated by checking the name of the environment in the terminal. It should be (rob2004) instead of (base).
 
-5. Run Jupyter Notebook after navigating to the laboratory folder Labx:
+5. Install the Python library for the class. While you're in the classes repository, run the following:
+```bash
+pip install .
+```
 
-```jupyter notebook```
+5. Open the project in VSCode and open the notebook you're interested in.
 
-This should open a new tab in your browser with the Jupyter Notebook interface. You can now open the notebooks for the labs.
+6. To run the notebook, select the kernel to be the environment you just created. You should now be able to run the notebook on your labptop (only for simulation).
 
 
 
