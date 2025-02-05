@@ -1,6 +1,6 @@
 # ROB2004 Robotics manipulation and locomotion
 
-**Note:** For Spring 2025, use the `spring25` branch in this repository. You can directly downloading it by selecting this branch as:
+**Note:** For Spring 2025, use the `spring25` branch in this repository. You can directly download it by selecting this branch as:
 
 <img src="download-info.jpeg" width="800"> 
 
