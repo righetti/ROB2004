@@ -1,0 +1,324 @@
+<mujoco model="trifinger_with_ground">
+
+    <!-- ============ VISUAL, COMPILER, OPTIONS ============ -->
+    <visual>
+        <global offwidth="1280" offheight="960"/>
+    </visual>
+
+    <compiler angle="radian" meshdir="assets"/>
+
+    <option cone="elliptic" impratio="10.0" integrator="Euler"
+            iterations="5" ls_iterations="20" solver="Newton"
+            tolerance="0" noslip_iterations="0">
+        <flag
+            eulerdamp="enable"
+            clampctrl="disable"
+            warmstart="enable"
+            frictionloss="enable"
+            fwdinv="enable"
+            midphase="enable"
+            multiccd="enable"
+            invdiscrete="enable"/>
+    </option>
+
+    <!-- <size njmax="500" nconmax="100"/> -->
+
+    <!-- ============ ASSETS ============ -->
+    <asset>
+        <!-- Base meshes (from URDF1) -->
+        <mesh name="base_back"      file="base_back.stl"/>
+        <mesh name="base_front"     file="base_front.stl"/>
+        <mesh name="base_side_left" file="base_side_left.stl"/>
+        <mesh name="base_top"       file="base_top.stl"/>
+
+        <!-- Finger link meshes -->
+        <mesh name="upper_link"  file="upper_link.stl"/>
+        <mesh name="middle_link" file="middle_link.stl"/>
+        <mesh name="lower_link"  file="lower_link.stl"/>
+
+        <!-- Ground plane material/texture -->
+        <texture type="2d" name="groundplane" builtin="checker" mark="edge"
+                 rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3" markrgb="0.8 0.8 0.8"
+                 width="300" height="300"/>
+        <material name="groundplane" texture="groundplane" texuniform="true"
+                  texrepeat="5 5" reflectance="0.0"/>
+
+        <!-- Cube material (not used in this snippet) -->
+        <material name="cube_material" rgba="0.0 0.0 1.0 1.0"/>
+    </asset>
+
+    <visual>
+        <rgba haze="0.15 0.25 0.35 1"/>
+        <quality shadowsize="8192"/>
+        <global azimuth="130" elevation="-40"/>
+    </visual>
+
+
+    <!-- ============ WORLDBODY ============ -->
+    <worldbody>
+
+        <light name="light0" directional="true" ambient="0.2 0.2 0.2"
+               diffuse="0.8 0.8 0.8" castshadow="false"
+               pos="0 1 4" dir="0 0 -1"/>
+        <camera name="demo-cam" pos="-0.005 -0.529 0.575"
+                xyaxes="1.000 -0.002 -0.000 0.001 0.644 0.765"/>
+
+        <!-- Table: collides with contype=1, conaffinity=1 -->
+        <geom name="table" type="plane" material="groundplane"
+              size="0 0 0.05" rgba="0.8 0.8 0.8 1.0"
+              friction="0.8" condim="6"
+              contype="1" conaffinity="1"/>
+
+        <!-- ===================== BASE (no collision) ===================== -->
+        <geom name="finger0_base_back"      type="mesh" mesh="base_back"
+              pos="-0.23995 0 0.29" quat="1 0 0 0"
+              rgba="0.5 0 0 1"
+              contype="0" conaffinity="0"/>
+        <geom name="finger0_base_front"     type="mesh" mesh="base_front"
+              pos="-0.03450 0 0.29" quat="1 0 0 0"
+              rgba="0.5 0 0 1"
+              contype="0" conaffinity="0"/>
+        <geom name="finger0_base_side_left" type="mesh" mesh="base_side_left"
+              pos="-0.03450 0.02 0.37" quat="1 0 0 0"
+              rgba="0.5 0 0 1"
+              contype="0" conaffinity="0"/>
+        <geom name="finger0_base_top"       type="mesh" mesh="base_top"
+              pos="-0.03450 0 0.37" quat="1 0 0 0"
+              rgba="0.5 0 0 1"
+              contype="0" conaffinity="0"/>
+
+        <geom name="finger120_base_back"    type="mesh" mesh="base_back"
+              pos="0.11998 0.20787 0.29"
+              quat="0.5 0 0 -0.866025"
+              rgba="0 0.5 0 1"
+              contype="0" conaffinity="0"/>
+        <geom name="finger120_base_front"   type="mesh" mesh="base_front"
+              pos="0.01725 0.02991 0.29"
+              quat="0.5 0 0 -0.866025"
+              rgba="0 0.5 0 1"
+              contype="0" conaffinity="0"/>
+        <geom name="finger120_base_side_left" type="mesh" mesh="base_side_left"
+              pos="0.03457 0.01991 0.37"
+              quat="0.5 0 0 -0.866025"
+              rgba="0 0.5 0 1"
+              contype="0" conaffinity="0"/>
+        <geom name="finger120_base_top"     type="mesh" mesh="base_top"
+              pos="0.01725 0.02991 0.37"
+              quat="0.5 0 0 -0.866025"
+              rgba="0 0.5 0 1"
+              contype="0" conaffinity="0"/>
+
+        <geom name="finger240_base_back"    type="mesh" mesh="base_back"
+              pos="0.11998 -0.20787 0.29"
+              quat="-0.5 0 0 -0.866025"
+              rgba="0 0.5 0.5 1"
+              contype="0" conaffinity="0"/>
+        <geom name="finger240_base_front"   type="mesh" mesh="base_front"
+              pos="0.01725 -0.02991 0.29"
+              quat="-0.5 0 0 -0.866025"
+              rgba="0 0.5 0.5 1"
+              contype="0" conaffinity="0"/>
+        <geom name="finger240_base_side_left" type="mesh" mesh="base_side_left"
+              pos="-0.00007 -0.03991 0.37"
+              quat="-0.5 0 0 -0.866025"
+              rgba="0 0.5 0.5 1"
+              contype="0" conaffinity="0"/>
+        <geom name="finger240_base_top"     type="mesh" mesh="base_top"
+              pos="0.01725 -0.02991 0.37"
+              quat="-0.5 0 0 -0.866025"
+              rgba="0 0.5 0.5 1"
+              contype="0" conaffinity="0"/>
+
+        <!-- ===================== FINGER 0 ===================== -->
+        <body name="finger_upper_link_0" pos="-0.06 0.0 0.29">
+            <inertial pos="-0.079 0 0"
+                      mass="0.14854"
+                      diaginertia="0.00003 0.00041 0.00041"/>
+
+            <joint name="finger_base_to_upper_joint_0"
+                   pos="0 0 0" axis="-1 0 0"
+                   limited="true"
+                   range="-1.5708 1.5708"/>
+
+            <!-- contype=1, conaffinity=2 => no self-collision, 
+                 but collides with table (1&1=1) -->
+            <geom name="finger0_upper_geom" type="mesh" mesh="upper_link"
+                  pos="0.0195 0 0"
+                  rgba="0.5 0 0 1"
+                  contype="1" conaffinity="1"/>
+
+            <body name="finger_middle_link_0" pos="0 -0.014 0">
+                <inertial pos="0 -0.019 -0.079"
+                          mass="0.14854"
+                          diaginertia="0.00041 0.00041 0.00003"/>
+                <joint name="finger_upper_to_middle_joint_0"
+                       pos="0 0 0" axis="0 1 0"
+                       limited="true"
+                       range="-1.5708 3.14159"/>
+                <geom name="finger0_middle_geom" type="mesh" mesh="middle_link"
+                      pos="0 -0.014 0"
+                      rgba="0.5 0 0 1"
+                      contype="1" conaffinity="1"/>
+
+                <body name="finger_lower_link_0" pos="0 -0.03745 -0.16">
+                    <inertial pos="0 -0.009 -0.089"
+                              mass="0.03070"
+                              diaginertia="0.00012 0.00012 0.00012"/>
+                    <joint name="finger_middle_to_lower_joint_0"
+                           pos="0 0 0" axis="0 1 0"
+                           limited="true" range="-3.14159 3.14159"/>
+                    <geom name="finger0_lower_geom" type="mesh" mesh="lower_link"
+                          pos="0 0 0"
+                          rgba="0.5 0 0 1"
+                          contype="1" conaffinity="1"/>
+                    <site name="finger_tip_0_site"
+                              pos="0 -0.008 -0.16"
+                              size="0.01"
+                              type="sphere"/>
+                    <body name="finger_tip_link_0" pos="0 -0.008 -0.16">
+                        <inertial pos="0 0 0"
+                                    mass="0.01"
+                                    diaginertia="0.000000167 0.000000167 0.000000167"/>
+                    </body>
+                </body>
+            </body>
+        </body>
+
+        <!-- ===================== FINGER 120 ===================== -->
+        <body name="finger_upper_link_120"
+              pos="0.03 0.052 0.29"
+              quat="0.5 0 0 -0.866025">
+            <inertial pos="-0.079 0 0"
+                      mass="0.14854"
+                      diaginertia="0.00003 0.00041 0.00041"/>
+            <joint name="finger_base_to_upper_joint_120"
+                   pos="0 0 0" axis="-1 0 0"
+                   limited="true"
+                   range="-1.5708 1.5708"/>
+            <geom name="finger120_upper_geom" type="mesh" mesh="upper_link"
+                  pos="0.0195 0 0"
+                  rgba="0 0.5 0 1"
+                  contype="1" conaffinity="1"/>
+
+            <body name="finger_middle_link_120" pos="0 -0.014 0">
+                <inertial pos="0 -0.019 -0.079"
+                          mass="0.14854"
+                          diaginertia="0.00041 0.00041 0.00003"/>
+                <joint name="finger_upper_to_middle_joint_120"
+                       pos="0 0 0" axis="0 1 0"
+                       limited="true" range="-1.5708 3.14159"/>
+                <geom name="finger120_middle_geom" type="mesh" mesh="middle_link"
+                      pos="0 0 0"
+                      rgba="0 0.5 0 1"
+                      contype="1" conaffinity="1"/>
+
+                <body name="finger_lower_link_120" pos="0 -0.03745 -0.16">
+                    <inertial pos="0 -0.009 -0.089"
+                              mass="0.03070"
+                              diaginertia="0.00012 0.00012 0.00012"/>
+                    <joint name="finger_middle_to_lower_joint_120"
+                           pos="0 0 0" axis="0 1 0"
+                           limited="true" range="-3.14159 3.14159"/>
+                    <geom name="finger120_lower_geom" type="mesh" mesh="lower_link"
+                          pos="0 0 0"
+                          rgba="0 0.5 0 1"
+                          contype="1" conaffinity="1"/>
+                    <site name="finger_tip_120_site"
+                              pos="0 -0.008 -0.16"
+                              size="0.01"
+                              type="sphere"/>
+                    <body name="finger_tip_link_120" pos="0 -0.008 -0.16">
+                        <inertial pos="0 0 0"
+                                    mass="0.01"
+                                    diaginertia="0.000000167 0.000000167 0.000000167"/>
+                    </body>
+                </body>
+            </body>
+        </body>
+
+        <!-- ===================== FINGER 240 ===================== -->
+        <body name="finger_upper_link_240"
+              pos="0.03 -0.052 0.29"
+              quat="-0.5 0 0 -0.866025">
+            <inertial pos="-0.079 0 0"
+                      mass="0.14854"
+                      diaginertia="0.00003 0.00041 0.00041"/>
+            <joint name="finger_base_to_upper_joint_240"
+                   pos="0 0 0" axis="-1 0 0"
+                   limited="true" range="-1.5708 1.5708"/>
+            <geom name="finger240_upper_geom" type="mesh" mesh="upper_link"
+                  pos="0.0195 0 0"
+                  rgba="0 0.5 0.5 1"
+                  contype="1" conaffinity="1"/>
+
+            <body name="finger_middle_link_240" pos="0 -0.014 0">
+                <inertial pos="0 -0.019 -0.079"
+                          mass="0.14854"
+                          diaginertia="0.00041 0.00041 0.00003"/>
+                <joint name="finger_upper_to_middle_joint_240"
+                       pos="0 0 0" axis="0 1 0"
+                       limited="true" range="-1.5708 3.14159"/>
+                <geom name="finger240_middle_geom" type="mesh" mesh="middle_link"
+                      pos="0 -0.014 0"
+                      rgba="0 0.5 0.5 1"
+                      contype="1" conaffinity="1"/>
+
+                <body name="finger_lower_link_240" pos="0 -0.03745 -0.16">
+                    <inertial pos="0 -0.009 -0.089"
+                              mass="0.03070"
+                              diaginertia="0.00012 0.00012 0.00012"/>
+                    <joint name="finger_middle_to_lower_joint_240"
+                           pos="0 0 0" axis="0 1 0"
+                           limited="true" range="-3.14159 3.14159"/>
+                    <geom name="finger240_lower_geom" type="mesh" mesh="lower_link"
+                          pos="0 0 0"
+                          rgba="0 0.5 0.5 1"
+                          contype="1" conaffinity="1"/>
+                    <site name="finger_tip_240_site"
+                              pos="0 -0.008 -0.16"
+                              size="0.01"
+                              type="sphere"/>
+                    <body name="finger_tip_link_240" pos="0 -0.008 -0.16">
+                        <inertial pos="0 0 0"
+                                    mass="0.01"
+                                    diaginertia="0.000000167 0.000000167 0.000000167"/>
+                    </body>
+                </body>
+            </body>
+        </body>
+
+    </worldbody>
+
+    <!-- ============ ACTUATORS ============ -->
+    <actuator>
+        <position name="finger_base_to_upper_joint_0"   joint="finger_base_to_upper_joint_0"/>
+        <position name="finger_upper_to_middle_joint_0" joint="finger_upper_to_middle_joint_0"/>
+        <position name="finger_middle_to_lower_joint_0" joint="finger_middle_to_lower_joint_0"/>
+
+        <position name="finger_base_to_upper_joint_120"   joint="finger_base_to_upper_joint_120"/>
+        <position name="finger_upper_to_middle_joint_120" joint="finger_upper_to_middle_joint_120"/>
+        <position name="finger_middle_to_lower_joint_120" joint="finger_middle_to_lower_joint_120"/>
+
+        <position name="finger_base_to_upper_joint_240"   joint="finger_base_to_upper_joint_240"/>
+        <position name="finger_upper_to_middle_joint_240" joint="finger_upper_to_middle_joint_240"/>
+        <position name="finger_middle_to_lower_joint_240" joint="finger_middle_to_lower_joint_240"/>
+    </actuator>
+
+    <!-- ============ SENSORS ============ -->
+    <sensor>
+        <framepos name="tip_position_0"   objtype="site" objname="finger_tip_0_site"
+                  reftype="geom" refname="table"/>
+        <framepos name="tip_position_120" objtype="site" objname="finger_tip_120_site"
+                  reftype="geom" refname="table"/>
+        <framepos name="tip_position_240" objtype="site" objname="finger_tip_240_site"
+                  reftype="geom" refname="table"/>
+    </sensor>
+
+    <!-- ============ KEYFRAME (Optional) ============ -->
+    <keyframe>
+        <key name="default"
+             qpos="0.0 0.7 -1.4   0.0 0.7 -1.4   0.0 0.7 -1.4"
+             ctrl="0.0 0.7 -1.4   0.0 0.7 -1.4   0.0 0.7 -1.4"/>
+    </keyframe>
+
+</mujoco>

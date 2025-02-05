@@ -1,0 +1,18 @@
+// https://containers.dev/implementors/json_reference/
+{
+    "name": "NYUFinger", 
+    "dockerComposeFile": "docker-compose.yaml",
+    "workspaceFolder": "/home/NYUFinger",
+    "service": "fingerpy",
+    "remoteUser": "root", 
+    "postCreateCommand": "cd /home/NYUFinger && pip install -e .",
+    "customizations": {
+      "vscode": {
+        "extensions": [
+          "dbaeumer.vscode-eslint", // Existing ESLint extension
+          "ms-python.python", // Python extension by Microsoft
+          "ms-toolsai.jupyter" // Jupyter extension by Microsoft
+        ]
+      }
+    }
+  }
