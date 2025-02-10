@@ -97,13 +97,14 @@ class NYUFingerHardware:
         self.udp_bridge = TeensyUDPBridge(self.config)
         self.q_offset = np.zeros(3)
         self.q_raw = np.zeros(3)
+        self.q_dir = np.array([-1, -1, -1])
     
     def get_state(self):
         stamp, teensy_state = self.udp_bridge.getLatestState()
         if teensy_state is not None:
             state = np.array(teensy_state)
-            q = (state[:3]/self.config.gear_ratio)
-            dq = (state[3:6]/self.config.gear_ratio)
+            q = (state[:3]/self.config.gear_ratio)*self.q_dir
+            dq = (state[3:6]/self.config.gear_ratio)*self.q_dir
             tau = (state[6:]*self.config.current2Torque * self.config.gear_ratio).tolist()
             self.q_raw = q.copy()
             self.dq_raw = dq.copy()
@@ -116,7 +117,7 @@ class NYUFingerHardware:
         udp_cmd = np.zeros(15)
         tau_ff = np.clip(joint_torques, -self.config.max_torque, self.config.max_torque)
         current = (np.array(tau_ff)/self.config.gear_ratio)/self.config.current2Torque
-        udp_cmd[:3] = current
+        udp_cmd[:3] = current*self.q_dir
         self.udp_bridge.sendCommand(udp_cmd.tolist())
 
     def reset_sensors(self, q0=np.zeros(3)):

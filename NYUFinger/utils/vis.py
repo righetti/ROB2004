@@ -3,7 +3,7 @@ import mujoco
 import mujoco.viewer
 import numpy as np
 import os
-from FingerPy import ASSETS_PATH
+from NYUFinger import ASSETS_PATH
 
 class NYUFingerVisualizer:
     def __init__(self, 
