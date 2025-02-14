@@ -1,0 +1,2 @@
+include NYUFinger/models/*.xml
+include NYUFinger/models/assets/*.stl
