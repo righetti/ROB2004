@@ -1,3 +1,0 @@
-Tue Feb  4 21:27:41 2025
-WARNING: mju_openResource: unknown file '/opt/miniconda3/envs/rob2004/lib/python3.8/site-packages/NYUFinger/models/single_finger_scene.xml'
-
