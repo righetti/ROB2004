@@ -5,7 +5,6 @@ import numpy as np
 import os
 from NYUFinger import ASSETS_PATH
 import threading
-
 class NYUFingerSimulator:
     def __init__(self, 
                  render=True, 

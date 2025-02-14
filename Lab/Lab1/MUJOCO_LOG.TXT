@@ -1,3 +1,6 @@
 Tue Feb  4 21:27:41 2025
 WARNING: mju_openResource: unknown file '/opt/miniconda3/envs/rob2004/lib/python3.8/site-packages/NYUFinger/models/single_finger_scene.xml'
 
+Thu Feb 13 17:38:32 2025
+WARNING: Nan, Inf or huge value in QACC at DOF 2. The simulation is unstable. Time = 728.3590.
+
