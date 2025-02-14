@@ -1,7 +1,6 @@
 # ROB2004 Robotics Manipulation and Locomotion
 
 This repository provides material used for the class **ROB2004 Robotic manipulation and locomotion** taught at New York University by [Ludovic Righetti](https://engineering.nyu.edu/faculty/ludovic-righetti). You are free to use and copy this material (at your own risk), please reference the material if you use it.
-
 ## Prerequisites
 We work with Python 3.8 using numpy, scipy, matplotlib, Mujoco, and Pinocchio. Most the material will be given as Jupyter notebooks. The project comes with Docker and Devcontainers support for automatic installation on Ubuntu machines but can also be installed manually as explained [here](docs/Installation.md).
  
