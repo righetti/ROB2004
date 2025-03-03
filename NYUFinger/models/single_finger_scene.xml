@@ -81,14 +81,10 @@
             <inertial pos="-0.079 0 0"
                       mass="0.14854"
                       diaginertia="0.00003 0.00041 0.00041"/>
-
             <joint name="finger_base_to_upper_joint_0"
                    pos="0 0 0" axis="-1 0 0"
                    limited="true"
                    range="-1.5708 1.5708"/>
-
-            <!-- contype=1, conaffinity=2 => no self-collision, 
-                 but collides with table (1&1=1) -->
             <geom name="finger0_upper_geom" type="mesh" mesh="upper_link"
                   pos="0.0195 0 0"
                   rgba="0.5 0 0 1"
@@ -103,7 +99,7 @@
                        limited="true"
                        range="-1.5708 3.14159"/>
                 <geom name="finger0_middle_geom" type="mesh" mesh="middle_link"
-                      pos="0 -0.014 0"
+                      pos="0 0 0"
                       rgba="0.5 0 0 1"
                       contype="1" conaffinity="1"/>
 
@@ -119,17 +115,18 @@
                           rgba="0.5 0 0 1"
                           contype="1" conaffinity="1"/>
                     <site name="finger_tip_0_site"
-                              pos="0 -0.008 -0.16"
-                              size="0.01"
-                              type="sphere"/>
+                          pos="0 -0.008 -0.16"
+                          size="0.001"
+                          type="sphere"/>
                     <body name="finger_tip_link_0" pos="0 -0.008 -0.16">
                         <inertial pos="0 0 0"
-                                    mass="0.01"
-                                    diaginertia="0.000000167 0.000000167 0.000000167"/>
+                                  mass="0.01"
+                                  diaginertia="0.000000167 0.000000167 0.000000167"/>
                     </body>
                 </body>
             </body>
         </body>
+
 
     </worldbody>
 

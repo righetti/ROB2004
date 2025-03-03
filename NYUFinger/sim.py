@@ -111,5 +111,6 @@ class NYUFingerSimulator:
         self.running = False
         self.sim_thread.join()
 
-    def add_ball(self, pos, color=np.array([1, 0, 0, 1]), radius=0.01):
+    def add_ball(self, ball_pos, color=np.array([0, 1, 0, 1]), radius=0.01):
+        pos = np.array([ball_pos[0]-0.3-0.06, ball_pos[2], ball_pos[1]+0.29])
         add_visual_capsule(self.scene, pos, pos+np.array([0., 0., 0.001]), radius, color)
