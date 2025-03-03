@@ -53,6 +53,7 @@
 
         <!-- Table: collides with contype=1, conaffinity=1 -->
         <geom name="table" type="plane" material="groundplane"
+              pos="0. 0 -0.1"
               size="0 0 0.05" rgba="0.8 0.8 0.8 1.0"
               friction="0.8" condim="6"
               contype="1" conaffinity="1"/>

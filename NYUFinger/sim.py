@@ -6,6 +6,19 @@ import os
 from NYUFinger import ASSETS_PATH
 import threading
 
+def add_visual_capsule(scene, point1, point2, radius, rgba):
+  """Adds one capsule to an mjvScene."""
+  if scene.ngeom >= scene.maxgeom:
+    return
+  scene.ngeom += 1  # increment ngeom
+  # initialise a new capsule, add it to the scene using mjv_connector
+  mujoco.mjv_initGeom(scene.geoms[scene.ngeom-1],
+                      mujoco.mjtGeom.mjGEOM_CAPSULE, np.zeros(3),
+                      np.zeros(3), np.zeros(9), rgba.astype(np.float32))
+  mujoco.mjv_connector(scene.geoms[scene.ngeom-1],
+                       mujoco.mjtGeom.mjGEOM_CAPSULE, radius,
+                       point1, point2)
+
 class NYUFingerSimulator:
     def __init__(self, 
                  render=True, 
@@ -51,9 +64,11 @@ class NYUFingerSimulator:
         self.tau_ff = np.zeros(3)
         self.latest_command_stamp = time.time()
         self.reset()
+        self.scene = self.viewer.user_scn
         self.running = True
         self.sim_thread = threading.Thread(target=self.sim_loop)
         self.sim_thread.start()
+
 
     def sim_loop(self):
         while self.running:
@@ -83,7 +98,7 @@ class NYUFingerSimulator:
         self.tau_ff[:] = np.array(torque)
 
     def step(self):
-        self.data.ctrl[:] = self.tau_ff
+        self.data.ctrl[:] = self.tau_ff - self.data.qvel*0.003
         self.step_counter += 1
         mujoco.mj_step(self.model, self.data)
         # Render every render_ds_ratio steps (60Hz GUI update)
@@ -95,3 +110,6 @@ class NYUFingerSimulator:
             self.viewer.close()
         self.running = False
         self.sim_thread.join()
+
+    def add_ball(self, pos, color=np.array([1, 0, 0, 1]), radius=0.01):
+        add_visual_capsule(self.scene, pos, pos+np.array([0., 0., 0.001]), radius, color)
