@@ -97,7 +97,7 @@ class NYUFingerHardware:
         self.udp_bridge = TeensyUDPBridge(self.config)
         self.q_offset = np.zeros(3)
         self.q_raw = np.zeros(3)
-        self.q_dir = np.array([-1, -1, -1])
+        self.q_dir = np.array([1, 1, 1])
     
     def get_state(self):
         stamp, teensy_state = self.udp_bridge.getLatestState()
