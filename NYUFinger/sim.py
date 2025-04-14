@@ -184,9 +184,9 @@ class NYUDualFingerSimulator:
         else:
             self.data.qpos[2] = 0.0
             self.data.qpos[5] = 0.0
-        self.data.qpos[6:] = np.array([0.125, 0. , 0.025 , 1, 0, 0, 0, 
-                                       0.125, 0. , 0.075 , 1, 0, 0, 0,
-                                       0.125, 0. , 0.125 , 1, 0, 0, 0])
+        self.data.qpos[6:] = np.array([0.125, -0.05 , 0.025 , 1, 0, 0, 0, 
+                                       0.125, -0.05 , 0.075 , 1, 0, 0, 0,
+                                       0.125, -0.05 , 0.125 , 1, 0, 0, 0])
         
         mujoco.mj_step(self.model, self.data)
         if self.render:

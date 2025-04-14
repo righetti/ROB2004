@@ -196,7 +196,7 @@
             </body>
         </body>
 
-      <body pos="0.125 0 0.025">
+      <body pos="0.125 -0.05 0.025">
             <joint type="free"/>
             <geom type="box" size=".025 .025 .025" rgba="0.9 0 0 1"/>
             <inertial pos="0 0 0"
@@ -204,7 +204,7 @@
                       diaginertia="0.000000167 0.000000167 0.000000167"/>
       </body>
 
-      <body pos="0.125 0 0.075">
+      <body pos="0.125 -0.05 0.075">
             <joint type="free"/>
             <geom type="box" size=".025 .025 .025" rgba="0 .9 0 1"/>
             <inertial pos="0 0 0"
@@ -212,7 +212,7 @@
                       diaginertia="0.000000167 0.000000167 0.000000167"/>
       </body>
 
-      <body pos="0.125 0 0.125">
+      <body pos="0.125 -0.05 0.125">
             <joint type="free"/>
             <geom type="box" size=".025 .025 .025" rgba="0 0 0.9 1"/>
             <inertial pos="0 0 0"
