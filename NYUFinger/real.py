@@ -84,16 +84,17 @@ def get_last_msg(reader, topic_type):
         return None
             
 class NYUFingerHardware:
-    def __init__(self):
+    def __init__(self, 
+                 robot_ip = '192.168.123.10', local_port = 5000):
         self.config = RobotConfig
         self.config.DoF = 3
         self.config.robot_name = 'finger1'
         self.config.current2Torque = 1.0
         self.config.gear_ratio = 9
         self.config.max_torque = 20.0
-        self.config.robot_ip  = '192.168.123.10'
-        self.config.robot_port = 5000
-        self.config.local_port = 5000
+        self.config.robot_ip  = robot_ip
+        self.config.robot_port = local_port
+        self.config.local_port = local_port
         self.udp_bridge = TeensyUDPBridge(self.config)
         self.q_offset = np.zeros(3)
         self.q_raw = np.zeros(3)
@@ -130,4 +131,25 @@ class NYUFingerHardware:
         # q = q_raw - q_offset -> q_offset = q_raw-q0
         self.q_offset[:] = self.q_raw - q0
         print(f'Successfully reset the sensor values to: {q0}')
+
+class NYUDualFingerHardware:
+    def __init__(self):
+        self.robot2 = NYUFingerHardware(robot_ip='192.168.124.10', local_port=5001)
+        self.robot1 = NYUFingerHardware(robot_ip='192.168.123.10', local_port=5000)
+    
+    def reset_sensors(self):
+        self.robot1.reset_sensors()
+        self.robot2.reset_sensors()
+
+    def get_state(self):
+        q1, dq1 = self.robot1.get_state()
+        q2, dq2 = self.robot2.get_state()
+        q = np.hstack([q1, q2]).squeeze()
+        dq = np.hstack([dq1, dq2]).squeeze()
+        return q, dq
+
+    def send_joint_torque(self, torques):
+        assert torques.shape == (6,), 'The shape of the joint torque should be (6,)'
+        self.robot1.send_joint_torque(torques[:3])
+        self.robot2.send_joint_torque(torques[3:])
 
