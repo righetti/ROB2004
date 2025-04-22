@@ -1,0 +1,4 @@
+<mujoco model="table_assets">
+    <material name="vention_black" rgba="0.05 0.05 0.1 1" reflectance="1" shininess=".5"/>
+    <material name="vention_blue" rgba=".14 .30 .52 1" reflectance="10" shininess=".1"/>
+</mujoco>

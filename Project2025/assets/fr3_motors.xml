@@ -1,0 +1,23 @@
+<mujoco model="fr3_motors"> 
+    <tendon>
+        <fixed name="split">
+            <joint joint="finger_joint1" coef="0.5"/>
+            <joint joint="finger_joint2" coef="0.5"/>
+        </fixed>
+    </tendon>
+
+    <equality>
+        <joint joint1="finger_joint1" joint2="finger_joint2" solimp="0.95 0.99 0.001" solref="0.005 1"/>
+    </equality>
+
+    <actuator>
+        <motor class="fr3" name="actuator1" joint="joint1" ctrlrange="-87 87" forcerange="-87 87"/>
+        <motor class="fr3" name="actuator2" joint="joint2" ctrlrange="-87 87" forcerange="-87 87"/>
+        <motor class="fr3" name="actuator3" joint="joint3" ctrlrange="-87 87" forcerange="-87 87"/>
+        <motor class="fr3" name="actuator4" joint="joint4" ctrlrange="-87 87" forcerange="-87 87"/>
+        <motor class="fr3" name="actuator5" joint="joint5" ctrlrange="-12 12" forcerange="-12 12"/>
+        <motor class="fr3" name="actuator6" joint="joint6" ctrlrange="-12 12" forcerange="-12 12"/>
+        <motor class="fr3" name="actuator7" joint="joint7" ctrlrange="-12 12" forcerange="-12 12"/>
+        <position class="fr3" name="actuator8" tendon="split" forcerange="-100 100" ctrlrange="0 0.04" kp="10"/>
+    </actuator>
+</mujoco>

@@ -1,0 +1,8 @@
+<mujoco model="table_default">
+    <default class="vention">
+        <geom conaffinity="0" contype="0" group="1"/>
+        <default class="vention_collision">
+            <geom conaffinity="1" condim="3" contype="0" group="4" margin="0.001" rgba=".4 .5 .6 1"/>
+        </default>
+    </default>
+</mujoco>
