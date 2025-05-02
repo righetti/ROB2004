@@ -107,7 +107,10 @@ class FR3Sim:
         return g[:7]
 
     def get_jacobian(self, q):
-        J = self.pin_model.computeFrameJacobian(np.append(q,[0.,0.]), END_EFF_FRAME_ID)
+        J_temp = self.pin_model.computeFrameJacobian(np.append(q,[0.,0.]), END_EFF_FRAME_ID)
+        J = np.zeros([6,7])
+        J[3:6,:] = J_temp[0:3,:7]
+        J[0:3,:] = J_temp[3:6,:7]
         return J[:,:7]
     
     def get_pose(self, q):
