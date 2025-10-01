@@ -1,8 +1,6 @@
-import socket
-import struct
 import numpy as np
+import zerorpc
 import time
-import threading
 from dataclasses import dataclass
 
 @dataclass
@@ -19,70 +17,17 @@ class RobotConfig:
     gear_ratio: float
     max_torque: float
 
-class TeensyUDPBridge():
-    def __init__(self, 
-                 cfg, 
-                 user_callback=None):
-        self.bridge_ip = cfg.robot_ip
-        self.bridge_port = cfg.robot_port
-        self.socket=socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
-        self.RX_RUNNING = True
-        self.socket.bind(('0.0.0.0', cfg.local_port))
-        self.rx_thread=threading.Thread(target=self.receivingThread)
-        self.state = None
-        self.latest_state_stamp = time.time()
-        self.packet = None
-        self.user_callback = user_callback
-        self.rx_thread.start()
+def getQDQ(robot):
+    state = robot.getJointStates()
+    q = np.array([state[f'joint_{i+1}']['q'] for i in range(3)])
+    dq = np.array([state[f'joint_{i+1}']['dq'] for i in range(3)])
+    return q, dq
 
-    def sendCommand(self, cmd):
-        msg_format=f'{len(cmd)}f'
-        payload = cmd
-        arguments = [msg_format] + payload
-        packet=struct.pack(*arguments)
-        self.socket.sendto(packet, (self.bridge_ip, self.bridge_port))
+def setCommand(robot, q, dq, tau):
+    command = {f'joint_{i+1}': {'q': q[i], 'dq': dq[i], 'tau': tau[i]} for i in range(3)}
+    robot.setJointCommand(command)
 
-    def getLatestState(self):
-        return self.latest_state_stamp, self.state
 
-    def receivingThread(self):
-        while self.RX_RUNNING:
-            packet = self.socket.recvmsg(4096)[0]
-            state_msg_format=f'{len(packet)//4}f'
-            data = struct.unpack(state_msg_format, packet)
-            self.state = data
-            self.latest_state_stamp = time.time()
-            # Notify user if a callback is provided
-            if self.user_callback is not None:
-                print('Calling user callback')
-                self.user_callback()
-
-    def close(self):
-        self.RX_RUNNING = False
-        self.socket.close()
-        self.rx_thread.join()
-
-def get_last_msg(reader, topic_type):
-    """ """
-    last_msg = reader.take()
-
-    if last_msg:
-        while True:
-            a = reader.take()
-            if not a:
-                break
-            else:
-                last_msg = a
-    if last_msg:
-        msg = last_msg[0]
-        if type(msg) == topic_type:
-            return msg
-        else:
-            return None
-
-    else:
-        return None
-            
 class NYUFingerHardware:
     def __init__(self, 
                  robot_ip = '192.168.123.10', local_port = 5000):
@@ -95,31 +40,28 @@ class NYUFingerHardware:
         self.config.robot_ip  = robot_ip
         self.config.robot_port = local_port
         self.config.local_port = local_port
-        self.udp_bridge = TeensyUDPBridge(self.config)
+        self.robot = zerorpc.Client()
+        self.robot.connect(f"tcp://{robot_ip}:4242")
         self.q_offset = np.zeros(3)
         self.q_raw = np.zeros(3)
         self.q_dir = np.array([1, 1, 1])
     
     def get_state(self):
-        stamp, teensy_state = self.udp_bridge.getLatestState()
-        if teensy_state is not None:
-            state = np.array(teensy_state)
-            q = (state[:3]/self.config.gear_ratio)*self.q_dir
-            dq = (state[3:6]/self.config.gear_ratio)*self.q_dir
-            tau = (state[6:]*self.config.current2Torque * self.config.gear_ratio).tolist()
+        try:
+            state = self.robot.getJointStates()
+            q = np.array([state[f'joint_{i+1}']['q'] for i in range(3)])
+            dq = np.array([state[f'joint_{i+1}']['dq'] for i in range(3)])
             self.q_raw = q.copy()
-            self.dq_raw = dq.copy()
-            return q-self.q_offset, dq
-        else:
+            q = (q - self.q_offset)*self.q_dir
+            dq = dq*self.q_dir
+            return q, dq
+        except:
             return None, None
     
-    def send_joint_torque(self, joint_torques):
+    def send_joint_torque(self, joint_torques, q= np.zeros(3), dq=np.zeros(3)):
         assert np.array(joint_torques).shape == (3,), 'Wrong torque shape! The torque commnand should be a numpy array with shape (3,)'
-        udp_cmd = np.zeros(15)
-        tau_ff = np.clip(joint_torques, -self.config.max_torque, self.config.max_torque)
-        current = (np.array(tau_ff)/self.config.gear_ratio)/self.config.current2Torque
-        udp_cmd[:3] = current*self.q_dir
-        self.udp_bridge.sendCommand(udp_cmd.tolist())
+        command = {f'joint_{i+1}': {'q': q[i], 'dq': dq[i], 'tau': joint_torques[i]} for i in range(3)}
+        self.robot.setJointCommand(command)
 
     def reset_sensors(self, q0=np.zeros(3)):
         assert q0.shape==(3,), 'Wrong q0 shape! The shape should be (3,)'  
@@ -131,25 +73,3 @@ class NYUFingerHardware:
         # q = q_raw - q_offset -> q_offset = q_raw-q0
         self.q_offset[:] = self.q_raw - q0
         print(f'Successfully reset the sensor values to: {q0}')
-
-class NYUDualFingerHardware:
-    def __init__(self):
-        self.robot2 = NYUFingerHardware(robot_ip='192.168.124.10', local_port=5001)
-        self.robot1 = NYUFingerHardware(robot_ip='192.168.123.10', local_port=5000)
-    
-    def reset_sensors(self):
-        self.robot1.reset_sensors()
-        self.robot2.reset_sensors()
-
-    def get_state(self):
-        q1, dq1 = self.robot1.get_state()
-        q2, dq2 = self.robot2.get_state()
-        q = np.hstack([q1, q2]).squeeze()
-        dq = np.hstack([dq1, dq2]).squeeze()
-        return q, dq
-
-    def send_joint_torque(self, torques):
-        assert torques.shape == (6,), 'The shape of the joint torque should be (6,)'
-        self.robot1.send_joint_torque(torques[:3])
-        self.robot2.send_joint_torque(torques[3:])
-
