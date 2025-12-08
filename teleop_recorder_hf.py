@@ -2,23 +2,23 @@ import zmq
 import msgpack
 import time
 import numpy as np
-import h5py
 import pyrealsense2 as rs
-import cv2
-from datetime import datetime
 from pynput import keyboard
+from pathlib import Path
+import torch
 import threading
-import os
-from tqdm import tqdm
-from concurrent.futures import ThreadPoolExecutor
-# Set numpy print options
-np.set_printoptions(precision=2, suppress=True)
+import cv2
 
+DATASET_ROOT = "/home/rooholla/projects/nyu-finger/ROB2004/data"
+REPO_ID = "nyufinger_dataset"
+TASK = "cubes"
+
+# --- ZMQ Subscriber (Same as before) ---
 class RobotDataSubscriber:
     def __init__(self, endpoint="ipc:///tmp/robot_data.ipc"):
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.SUB)
-        print(f"Connecting to subscriber endpoint: {endpoint}")
+        self.socket.set_hwm(1)
         self.socket.connect(endpoint)
         self.socket.setsockopt(zmq.SUBSCRIBE, b"")
 
@@ -26,18 +26,15 @@ class RobotDataSubscriber:
         try:
             flags = 0 if blocking else zmq.NOBLOCK
             data = self.socket.recv(flags=flags)
-            payload = msgpack.unpackb(data, raw=False)
-            return payload
+            return msgpack.unpackb(data, raw=False)
         except zmq.Again:
-            return None
-        except Exception as e:
-            print(f"Error receiving data: {e}")
             return None
 
     def close(self):
         self.socket.close()
         self.context.term()
 
+# --- Camera (Same as before) ---
 class RealSenseCamera:
     """
     A class for interacting with a RealSense cameras.
@@ -280,73 +277,117 @@ class RealSenseCamera:
                 'K':K,
                 'D':dist}   
 
-def compress_image(img):
-    """Helper function for threaded compression"""
-    success, encoded_img = cv2.imencode('.jpg', img, [int(cv2.IMWRITE_JPEG_QUALITY), 85])
-    if success:
-        return encoded_img.flatten()
-    else:
-        return np.array([], dtype='uint8')
+import os
+import os
+import shutil
+import numpy as np
+from pathlib import Path
+from lerobot.datasets.lerobot_dataset import LeRobotDataset
 
-def save_episode_to_hdf5(buffer, output_dir="data"):
-    if not buffer:
-        print("Buffer empty, nothing to save.")
-        return
-
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = os.path.join(output_dir, f"episode_{timestamp}.h5")
-    
-    print(f"Processing {len(buffer)} frames...")
-    
-    # Unpack buffer
-    robot_data_list, images_list = zip(*buffer)
-    
-    # 1. Prepare Robot Data (Standard numpy arrays)
-    q_pos = np.array([d['q'] for d in robot_data_list])
-    q_vel = np.array([d['dq'] for d in robot_data_list])
-    effort = np.array([d['tau'] for d in robot_data_list])
-    action = np.array([d['action'] for d in robot_data_list])
-    timestamps = np.array([d['timestamp'] for d in robot_data_list])
-    
-    # 2. Parallel JPEG Compression
-    # Using ThreadPoolExecutor to utilize multiple cores for compression
-    print("Compressing images...")
-    jpeg_images = []
-    with ThreadPoolExecutor() as executor:
-        # map preserves order, tqdm shows progress
-        jpeg_images = list(tqdm(executor.map(compress_image, images_list), total=len(images_list), unit="img"))
-
-    # 3. Save to HDF5
-    print(f"Saving to {filename}...")
-    with h5py.File(filename, 'w') as f:
-        obs = f.create_group('observations')
+class DataRecorder:
+    def __init__(self, 
+                 repo_id=REPO_ID, 
+                 root=DATASET_ROOT, 
+                 fps=50, 
+                 robot_type="nyufinger"):
         
-        # Create variable-length uint8 datatype
-        dt = h5py.vlen_dtype(np.dtype('uint8'))
-        
-        # Save JPEGs
-        dset = obs.create_dataset('images', (len(jpeg_images),), dtype=dt)
-        for i, data in enumerate(jpeg_images):
-            dset[i] = data
-            
-        dset.attrs['format'] = 'jpeg'
-        
-        # Save Robot State
-        obs.create_dataset('qpos', data=q_pos)
-        obs.create_dataset('qvel', data=q_vel)
-        obs.create_dataset('effort', data=effort)
-        f.create_dataset('action', data=action)
-        f.create_dataset('timestamp', data=timestamps)
-        
-        f.attrs['num_samples'] = len(buffer)
+        self.repo_id = repo_id
+        self.root = Path(root)
+        self.dataset_path = self.root / self.repo_id
+        self.fps = fps
+        self.robot_type = robot_type
 
-    print(f"Save complete! File size: {os.path.getsize(filename) / (1024*1024):.2f} MB")
+        # --- Dataset Initialization Logic ---
+        # If dataset exists but is corrupted (missing meta), clean it up
+        # LeRobot v2/v3 usually creates a 'meta' folder. 
+        print(self.dataset_path.exists())
+        print(self.dataset_path)
+        if self.dataset_path.exists() and not (self.dataset_path / "meta").exists():
+            print(f"[DataRecorder] Cleaning corrupted/empty dataset at {self.dataset_path}")
+            shutil.rmtree(self.dataset_path)
+
+        if self.dataset_path.exists():
+            print(f"[DataRecorder] Loading existing dataset: {self.dataset_path}")
+            self.dataset = LeRobotDataset(repo_id = self.repo_id, root = str(self.dataset_path))
+        else:
+            print(f"[DataRecorder] Creating new dataset: {self.dataset_path}")
+            self.dataset = LeRobotDataset.create(
+                repo_id=str(self.repo_id),
+                fps=self.fps,
+                root=str(self.dataset_path),
+                robot_type=self.robot_type,
+                features=self._generate_features(),
+                use_videos=True,
+                image_writer_threads=8  # Parallel MP4 encoding
+            )
+
+    def _generate_features(self):
+        """Defines the feature schema for NYUFinger."""
+        return {
+            "observation.images.camera_0": {
+                "dtype": "video",
+                "shape": (480, 640, 3),
+                "names": ["height", "width", "channel"],
+            },
+            "observation.state": {
+                "dtype": "float32",
+                "shape": (3,),
+                "names": ["joint_1", "joint_2", "joint_3"],
+            },
+            "observation.velocity": {
+                "dtype": "float32",
+                "shape": (3,),
+                "names": ["joint_1", "joint_2", "joint_3"],
+            },
+            "observation.effort": {
+                "dtype": "float32",
+                "shape": (3,),
+                "names": ["joint_1", "joint_2", "joint_3"],
+            },
+            "action": {
+                "dtype": "float32",
+                "shape": (3,),
+                "names": ["joint_1", "joint_2", "joint_3"],
+            },
+        }
+
+    def add_state(self, robot_data, image, task="fingers-cubes"):
+        """
+        Adds a single frame to the buffer.
+        
+        Args:
+            robot_data (dict): Must contain 'q', 'dq', 'tau', 'action' as numpy arrays.
+            image (np.ndarray): HxWxC RGB image.
+        """
+        # Ensure data types match the schema
+        frame = {
+            "observation.images.camera_0": image,
+            "observation.state": np.array(robot_data['q']).astype(np.float32),
+            "observation.velocity": np.array(robot_data['dq']).astype(np.float32),
+            "observation.effort": np.array(robot_data['tau']).astype(np.float32),
+            "action": np.array(robot_data['action']).astype(np.float32),
+            "task": task
+        }
+        
+        self.dataset.add_frame(frame)
+
+    def clear_buffer(self):
+        """Discard current unsaved episode data."""
+        self.dataset.clear_episode_buffer()
+
+    def save_episode(self):
+        """Commits the buffered frames to disk as an episode."""
+        print("[DataRecorder] Saving episode...")
+        self.dataset.save_episode()
+        print(f"[DataRecorder] Episode saved. Total episodes: {self.dataset.num_episodes}")
+
+    def finalize(self):
+        """Calculate statistics and finalize dataset structure."""
+        print("[DataRecorder] Consolidating dataset (calculating stats)...")
+        self.dataset.consolidate()
 
 
-# --- Global Flags for Keyboard Control ---
+# --- Global State ---
 is_recording = False
 should_quit = False
 episode_buffer = []
@@ -357,92 +398,59 @@ def on_press(key):
         if key.char == 'r':
             if not is_recording:
                 print("\n[RECORDING STARTED]")
-                episode_buffer = [] # Clear buffer
                 is_recording = True
         elif key.char == 's':
             if is_recording:
                 print("\n[RECORDING STOPPED]")
                 is_recording = False
-                # Save is handled in the main loop to avoid blocking the listener
         elif key.char == 'q':
             print("\n[QUITTING]")
             should_quit = True
-            return False # Stop listener
-    except AttributeError:
-        # Handle special keys if needed (e.g. Esc)
-        if key == keyboard.Key.esc:
-            should_quit = True
             return False
+    except AttributeError:
+        pass
 
-# --- Main Execution ---
 if __name__ == "__main__":
-    # 1. Initialize Sensors
     subscriber = RobotDataSubscriber()
     camera = RealSenseCamera()
-    
-    # 2. Start Keyboard Listener (Non-blocking)
+    recorder = DataRecorder(fps=50)
     listener = keyboard.Listener(on_press=on_press)
     listener.start()
     
-    print("\n" + "="*40)
-    print("DATA RECORDER READY")
-    print("Commands:")
-    print("  [r] : Start Recording Episode")
-    print("  [s] : Stop Recording & Save")
-    print("  [q] : Quit")
-    print("="*40 + "\n")
-
-    last_save_check = False # To track state changes
-
+    print("\n=== LEROBOT RECORDER READY ===")
+    print(" [r] Start  |  [s] Stop & Save  |  [q] Quit")
+    
+    last_save_check = False
+    
     try:
         while not should_quit:
-            # 1. Get Robot Data (Blocking syncs loop to robot freq ~50Hz)
+            # Sync with robot (50Hz)
+            # Note: If robot is 50Hz and Dataset is 30Hz, you might want to decimate here
+            # or just record at 50Hz (set FPS=50 above)
             robot_data = subscriber.receive(blocking=True)
             
             if robot_data is None:
                 continue
 
-            # 2. Get Camera Frame (Non-blocking check inside wait_for_frames usually fast enough)
-            # Note: If robot is 50Hz and Camera is 30Hz, we might get duplicate frames 
-            # or need to align timestamps. Here we just grab the latest available.
-            if camera.color_frame is not None:
-                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                frame = camera.color_frame.copy()
+            frame = camera.color_frame # RGB numpy array
 
-            # 3. Recording Logic
-            if is_recording:
-                if frame is not None:
-                    # Store tuple of (data, image)
-                    episode_buffer.append((robot_data, frame))
-                    
-                    # Visual feedback
-                    if len(episode_buffer) % 10 == 0:
-                        print(f"\rRecording... {len(episode_buffer)} frames", end="")
+            if is_recording and frame is not None:
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                recorder.add_state(robot_data, frame.copy(), task=TASK)
             
-            # 4. Save Trigger (Detect falling edge of is_recording)
             if last_save_check and not is_recording:
-                # User just pressed 's'
-                print() # New line
-                if len(episode_buffer) > 0:
-                    save_episode_to_hdf5(episode_buffer)
-                    episode_buffer = []
-                else:
-                    print("Empty episode, discarded.")
+                recorder.save_episode()
+                recorder.clear_buffer()
             
             last_save_check = is_recording
 
-            # Optional: Show camera feed (Slows down loop slightly)
-            # if frame is not None:
-            #     cv2.imshow('Recorder Feed', frame)
-            #     if cv2.waitKey(1) & 0xFF == ord('q'):
-            #         break
-
     except KeyboardInterrupt:
-        print("\nForce stopping...")
-
+        pass
     finally:
+        print("Finalizing dataset...")
+        # dataset.consolidate() # Important: writes metadata and stats
         subscriber.close()
         camera.close()
         listener.stop()
-        cv2.destroyAllWindows()
-        print("Clean exit.")
+        recorder.dataset.finalize()
+        print("Done.")
