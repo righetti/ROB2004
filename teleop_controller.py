@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from NYUFinger.real import NYUFingerHardware
 import zmq
 import msgpack # Efficient binary serialization (pip install msgpack)
-
+np.set_printoptions(precision=3, suppress=True)
 class DataStreamer:
     def __init__(self, endpoint="ipc:///tmp/robot_data.ipc"):
         self.context = zmq.Context()
@@ -129,7 +129,7 @@ input("Bring the leader robot to a close pose to the robot and press enter to co
 print("Starting smooth interpolation to leader position...")
 interpolation_duration = 2.0  # seconds
 interp_start_time = time.time()
-dt = 0.02
+dt = 1./50.
 
 # Capture starting states
 start_q_robot, _, _ = robot.get_state()
@@ -153,8 +153,8 @@ print("Interpolation complete. Starting teleoperation... Press Ctrl+C to stop.")
 
 # --- Main Teleoperation Loop ---
 streamer = DataStreamer(endpoint="ipc:///tmp/robot_data.ipc")
-SAFETY_THRESHOLD = 0.4  # Radians
-
+SAFETY_THRESHOLD = 1.  # Radians
+q_prev = np.zeros(3)
 try:
     # Indefinite loop, relies on KeyboardInterrupt to stop
     while True:
@@ -177,8 +177,10 @@ try:
         
         # 4. Stream Data
         streamer.publish(q_robot, dq_robot, tau_robot, q_leader)
-        
-        while time.time()-tic < 0.02:
+        print((q_leader-q_prev)/0.05)
+        q_prev = q_leader.copy()
+        # Maintain loop rate        
+        while time.time()-tic < 0.05:
             time.sleep(0.0005)
 
 except KeyboardInterrupt:

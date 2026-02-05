@@ -1,40 +1,16 @@
-import zmq
-import msgpack
-import time
 import numpy as np
-import pyrealsense2 as rs
-from pynput import keyboard
-from pathlib import Path
-import torch
+import zerorpc
+import time
+from dataclasses import dataclass
 import threading
-import cv2
+import matplotlib.pyplot as plt
+from NYUFinger.real import NYUFingerHardware
+import zmq
+import msgpack # Efficient binary serialization (pip install msgpack)
+from lerobot.policies.act.modeling_act import ACTPolicy
+import pyrealsense2 as rs
 
-DATASET_ROOT = "/home/rooholla/projects/nyu-finger/ROB2004/data"
-REPO_ID = "cube-to-bag-play"rsrs
-TASK = "cube-to-bag" 
 
-# --- ZMQ Subscriber (Same as before) ---
-class RobotDataSubscriber:
-    def __init__(self, endpoint="ipc:///tmp/robot_data.ipc"):
-        self.context = zmq.Context()
-        self.socket = self.context.socket(zmq.SUB)
-        self.socket.set_hwm(1)
-        self.socket.connect(endpoint)
-        self.socket.setsockopt(zmq.SUBSCRIBE, b"")
-
-    def receive(self, blocking=True):
-        try:
-            flags = 0 if blocking else zmq.NOBLOCK
-            data = self.socket.recv(flags=flags)
-            return msgpack.unpackb(data, raw=False)
-        except zmq.Again:
-            return None
-
-    def close(self):
-        self.socket.close()
-        self.context.term()
-
-# --- Camera (Same as before) ---
 class RealSenseCamera:
     """
     A class for interacting with a RealSense cameras.
@@ -277,180 +253,128 @@ class RealSenseCamera:
                 'K':K,
                 'D':dist}   
 
-import os
-import os
-import shutil
-import numpy as np
-from pathlib import Path
-from lerobot.datasets.lerobot_dataset import LeRobotDataset
 
-class DataRecorder:
+class NYUFingerHardwareV2:
     def __init__(self, 
-                 repo_id=REPO_ID, 
-                 root=DATASET_ROOT, 
-                 fps=10, 
-                 robot_type="nyufinger"):
+                 robot_ip='192.168.123.10',
+                 dt=0.01):
+        self.robot = zerorpc.Client()
+        self.robot.connect(f"tcp://{robot_ip}:4242")
+        self.q_raw = np.zeros(3)
+        self.q_dir = np.array([-1, 1, -1])
+        self.dt = dt
+        self.running = True
+        self.alpha = 0.9
+        self.tau_alpha = 0.9
+        self.tau_f = np.zeros(3) # filtered torque
+        self.dq_f = np.zeros(3) # filtered velocity
         
-        self.repo_id = repo_id
-        self.root = Path(root)
-        self.dataset_path = self.root / self.repo_id
-        self.fps = fps
-        self.robot_type = robot_type
+        # Reset the relative encoder value
+        state = self.robot.getJointStates()
+        self.q0_rel = np.array([state[f'joint_{i+1}']['q'] for i in range(3)])
+        # Get the current absolute joint angles from the absolute joint encoders
+        self.q_offset = self.getAbsoluteJointAngles()
 
-        # --- Dataset Initialization Logic ---
-        # If dataset exists but is corrupted (missing meta), clean it up
-        # LeRobot v2/v3 usually creates a 'meta' folder. 
-        print(self.dataset_path.exists())
-        print(self.dataset_path)
-        if self.dataset_path.exists() and not (self.dataset_path / "meta").exists():
-            print(f"[DataRecorder] Cleaning corrupted/empty dataset at {self.dataset_path}")
-            shutil.rmtree(self.dataset_path)
+    def getAbsoluteJointAngles(self):
+        abs_state = self.robot.getAbsJointStates()
+        q_abs_offset = np.array([10.4, 0.88, 3.84])
+        q_abs = np.array([s['q_abs'] for s in abs_state.values()]) - q_abs_offset
+        return q_abs * np.array([0.5, 0.91, 1.]) * np.array([-1, -1, -1])
+    
+    def getAbsoluteJointAnglesRaw(self):
+        abs_state = self.robot.getAbsJointStates()
+        q_abs = np.array([s['q_abs'] for s in abs_state.values()])
+        return q_abs
 
-        if self.dataset_path.exists():
-            print(f"[DataRecorder] Loading existing dataset: {self.dataset_path}")
-            self.dataset = LeRobotDataset(repo_id = self.repo_id, root = str(self.dataset_path))
-        else:
-            print(f"[DataRecorder] Creating new dataset: {self.dataset_path}")
-            self.dataset = LeRobotDataset.create(
-                repo_id=str(self.repo_id),
-                fps=self.fps,
-                root=str(self.dataset_path),
-                robot_type=self.robot_type,
-                features=self._generate_features(),
-                use_videos=True,
-                image_writer_threads=8  # Parallel MP4 encoding
-            )
-
-    def _generate_features(self):
-        """Defines the feature schema for NYUFinger."""
-        return {
-            "observation.images.camera_0": {
-                "dtype": "video",
-                "shape": (480, 640, 3),
-                "names": ["height", "width", "channel"],
-            },
-            "observation.state": {
-                "dtype": "float32",
-                "shape": (3,),
-                "names": ["joint_1", "joint_2", "joint_3"],
-            },
-            "observation.velocity": {
-                "dtype": "float32",
-                "shape": (3,),
-                "names": ["joint_1", "joint_2", "joint_3"],
-            },
-            "observation.effort": {
-                "dtype": "float32",
-                "shape": (3,),
-                "names": ["joint_1", "joint_2", "joint_3"],
-            },
-            "action": {
-                "dtype": "float32",
-                "shape": (3,),
-                "names": ["joint_1", "joint_2", "joint_3"],
-            },
-        }
-
-    def add_state(self, robot_data, image, task="fingers-cubes"):
-        """
-        Adds a single frame to the buffer.
+    def get_state(self):
+        state = self.robot.getJointStates()
+        q = np.array([state[f'joint_{i+1}']['q'] for i in range(3)])
+        dq = np.array([state[f'joint_{i+1}']['dq'] for i in range(3)])
+        tau = np.array([state[f'joint_{i+1}']['tau'] for i in range(3)])
         
-        Args:
-            robot_data (dict): Must contain 'q', 'dq', 'tau', 'action' as numpy arrays.
-            image (np.ndarray): HxWxC RGB image.
-        """
-        # Ensure data types match the schema
-        frame = {
-            "observation.images.camera_0": image,
-            "observation.state": np.array(robot_data['q']).astype(np.float32),
-            "observation.velocity": np.array(robot_data['dq']).astype(np.float32),
-            "observation.effort": np.array(robot_data['tau']).astype(np.float32),
-            "action": np.array(robot_data['action']).astype(np.float32),
-            "task": task
-        }
+        self.q_raw = q.copy()
+        q = (q - self.q0_rel) * self.q_dir + self.q_offset
+        dq = dq * self.q_dir
         
-        self.dataset.add_frame(frame)
+        # Filter velocity
+        self.dq_f = self.alpha * self.dq_f + (1 - self.alpha) * dq
+        self.tau_f = self.tau_alpha*self.tau_f + (1-self.tau_alpha)*tau
+        
+        # Return q, filtered velocity, and torque
+        return q, self.dq_f, self.tau_f
 
-    def clear_buffer(self):
-        """Discard current unsaved episode data."""
-        self.dataset.clear_episode_buffer()
+    def send_joint_cmd(self, q, dq, joint_torques):
+        tauff = joint_torques * self.q_dir
+        qdes = (q - self.q_offset) * self.q_dir + self.q0_rel
+        dqdes = dq * self.q_dir
+        command = {f'joint_{i+1}': {'q': qdes[i], 'dq': dqdes[i], 'tau': tauff[i]} for i in range(3)}
+        self.robot.setJointCommand(command)
 
-    def save_episode(self):
-        """Commits the buffered frames to disk as an episode."""
-        print("[DataRecorder] Saving episode...")
-        self.dataset.save_episode()
-        print(f"[DataRecorder] Episode saved. Total episodes: {self.dataset.num_episodes}")
-
-    def finalize(self):
-        """Calculate statistics and finalize dataset structure."""
-        print("[DataRecorder] Consolidating dataset (calculating stats)...")
-        self.dataset.consolidate()
-
-
-# --- Global State ---
-is_recording = False
-should_quit = False
-episode_buffer = []
-
-def on_press(key):
-    global is_recording, should_quit, episode_buffer
-    try:
-        if key.char == 'r':
-            if not is_recording:
-                print("\n[RECORDING STARTED]")
-                is_recording = True
-        elif key.char == 's':
-            if is_recording:
-                print("\n[RECORDING STOPPED]")
-                is_recording = False
-        elif key.char == 'q':
-            print("\n[QUITTING]")
-            should_quit = True
-            return False
-    except AttributeError:
+    def reset_sensors(self, q0=np.zeros(3)):
         pass
 
-if __name__ == "__main__":
-    subscriber = RobotDataSubscriber()
-    camera = RealSenseCamera()
-    recorder = DataRecorder(fps=20)
-    listener = keyboard.Listener(on_press=on_press)
-    listener.start()
-    
-    print("\n=== LEROBOT RECORDER READY ===")
-    print(" [r] Start  |  [s] Stop & Save  |  [q] Quit")
-    
-    last_save_check = False
-    
-    try:
-        while not should_quit:
-            # Sync with robot (50Hz)
-            # Note: If robot is 50Hz and Dataset is 30Hz, you might want to decimate here
-            # or just record at 50Hz (set FPS=50 above)
-            robot_data = subscriber.receive(blocking=True)
-            
-            if robot_data is None:
-                continue
+    def get_latest_action(self):
+        action_raw = self.robot.getJointCommand()
+        q_raw = np.array([action_raw[f'joint_{i+1}']['q'] for i in range(3)])
+        q_cmd = (q_raw - self.q0_rel) * self.q_dir + self.q_offset
+        return q_cmd
 
-            frame = camera.color_frame # RGB numpy array
 
-            if is_recording and frame is not None:
-                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                recorder.add_state(robot_data, frame.copy(), task=TASK)
-            
-            if last_save_check and not is_recording:
-                recorder.save_episode()
-                recorder.clear_buffer()
-            
-            last_save_check = is_recording
+# --- Setup ---
+robot = NYUFingerHardwareV2()
 
-    except KeyboardInterrupt:
-        pass
-    finally:
-        print("Finalizing dataset...")
-        # dataset.consolidate() # Important: writes metadata and stats
-        subscriber.close()
-        camera.close()
-        listener.stop()
-        recorder.dataset.finalize()
-        print("Done.")
+from lerobot.datasets.lerobot_dataset import LeRobotDataset
+dataset = LeRobotDataset(repo_id = "nyufinger_dataset", root = "/home/rooholla/projects/nyu-finger/ROB2004/data/cube-to-bag-relative", video_backend='pyav')
+policy = ACTPolicy.from_pretrained("/home/rooholla/projects/lerobot/outputs/train/place_cubes-act-relative-no-state/checkpoints/last/pretrained_model")
+
+from lerobot.policies.factory import make_pre_post_processors
+preprocessor, postprocessor = make_pre_post_processors(
+        policy_cfg=policy,
+        pretrained_path="/home/rooholla/projects/lerobot/outputs/train/place_cubes-act-relative-no-state/checkpoints/last/pretrained_model",
+        dataset_stats=dataset.meta.stats,
+        # The inference device is automatically set to match the detected hardware, overriding any previous device settings from training to ensure compatibility.
+        preprocessor_overrides={"device_processor": {"device": str(policy.config.device)}},
+    )
+policy = policy.eval().cuda()
+import torch
+import cv2
+
+def make_policy_input(img, q_robot, dq_robot, tau_robot):
+    img = torch.from_numpy(cv2.cvtColor(img, cv2.COLOR_BGR2RGB).astype(np.float32)/255.0).permute(2,0,1).unsqueeze(0)
+    # img = torch.from_numpy(img.astype(np.float32)/255.0).permute(2,0,1).unsqueeze(0)
+    
+    input_features = {
+        'observation.images.camera_0': img.cuda(),  
+        'observation.state': torch.from_numpy(np.concatenate([q_robot, tau_robot], axis=0)).unsqueeze(0).to(torch.float32).cuda(),
+
+    }
+    return input_features
+# try:
+    # Indefinite loop, relies on KeyboardInterrupt to stop
+camera = RealSenseCamera()
+time.sleep(2.0)  # Allow camera to warm up
+preprocessor.reset()
+postprocessor.reset()
+policy.eval()
+a0 = robot.get_latest_action().copy()
+while True:
+    tic = time.time()
+    # Get current states
+    q_robot, dq_robot, tau_robot = robot.get_state()
+    if camera.color_frame is not None:
+        # img = cv2.cvtColor(camera.color_frame, cv2.COLOR_BGR2RGB)
+        obs = make_policy_input(camera.color_frame, q_robot, dq_robot, tau_robot)
+        cv2.imshow('camera', camera.color_frame)
+        cv2.waitKey(1)
+        obs_processed = preprocessor(obs)
+        with torch.no_grad():
+            action = policy.select_action(obs_processed)
+            action = postprocessor(action).cpu().numpy()    
+        # offset = torch.tensor([-0.0086, -0.0155,  0.0062]).view(1, 3).numpy()
+        # action = action - offset
+        a0 += action.squeeze()
+        # action = robot.get_state()[0] + action.squeeze()
+        # robot.send_joint_cmd(action, np.zeros(3), np.zeros(3))
+        robot.send_joint_cmd(a0, np.zeros(3), np.zeros(3))
+    while time.time()-tic < 0.05:
+        time.sleep(0.0005)
