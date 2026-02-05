@@ -53,7 +53,6 @@ def convert_dataset(args):
                 # We assume standard (H, W, C) for feature description
                 channels = original_shape[2] 
                 features[key]['shape'] = (args.height, args.width, channels)
-    breakpoint()
     # 3. Create Target Dataset
     output_path = Path(args.output_dir)
     target_ds = LeRobotDataset.create(
